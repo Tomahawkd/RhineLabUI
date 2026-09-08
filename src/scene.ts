@@ -12,7 +12,7 @@ import { applyTextureQuality, resizeQuality } from "./quality-renderer";
 import { CardAppearance } from "./appearance";
 import { configureInternalOptics } from "./internal-optics";
 import { DecryptionController } from "./decryption";
-import { fileAtSlot, fileLocation } from "./data";
+import { archiveColumns, fileLocation, site } from "./data";
 import {
   cellKey,
   sameCell,
@@ -95,6 +95,7 @@ export class ArchiveScene {
   private pulses: { row: number; lane: number; time: number }[] = [];
   private pendingPulse: ArchiveCell | null = null;
   private selectedSlot = 76;
+  private selectedIndex = 0;
   private detail = 0;
   private targetDetail = 0;
   private reveal = 0;
@@ -354,7 +355,7 @@ export class ArchiveScene {
     this.appearance.apply(this.model, 0);
     this.drawLabel(0);
     this.scene.add(this.model);
-    this.model.position.copy(this.positions[this.selectedSlot]);
+    this.model.position.copy(this.cellPosition(this.selectedCell));
     this.loaded = true;
   }
 
@@ -430,7 +431,7 @@ export class ArchiveScene {
     if (mode !== "archive") this.pendingPulse = null;
     this.looping = mode !== "hidden";
     if (!this.looping) {
-      const canonical = fileLocation(fileAtSlot(this.selectedSlot));
+      const canonical = fileLocation(this.selectedIndex);
       this.selectedCell = { lane: canonical.lane, row: canonical.row };
       this.coordinateOrigin = { lane: 0, row: 0 };
       for (const old of this.outgoing) {
@@ -502,12 +503,12 @@ export class ArchiveScene {
     const shift = {
       lane:
         Math.abs(this.selectedCell.lane) > 2048
-          ? Math.round((this.selectedCell.lane - 2) / 5) * 5
+          ? Math.round((this.selectedCell.lane - 2) / archiveColumns.length) * archiveColumns.length
           : 0,
-      row:
-        Math.abs(this.selectedCell.row) > 2048
-          ? Math.floor((this.selectedCell.row - 12) / 8) * 8
-          : 0,
+      // Collections have different lengths; shifting all rows by eight would
+      // silently change which file a cell represents. Row positions are only
+      // advanced by explicit interaction and remain well within float precision.
+      row: 0,
     };
     if (!shift.lane && !shift.row) return;
     this.selectedCell.lane -= shift.lane;
@@ -532,6 +533,7 @@ export class ArchiveScene {
     }
   }
   select(index: number, navigation?: ArchiveNavigation) {
+    this.selectedIndex = index;
     this.lastInteraction = this.clock;
     const next = fileLocation(index).slot;
     const canonical = fileLocation(index);
@@ -606,7 +608,7 @@ export class ArchiveScene {
     c.fillRect(12, 12, 1000, 6);
     c.fillRect(12, 419, 1000, 3);
     c.font = "bold 81px MiSans";
-    c.fillText("RHINE LAB, LLC.", 22, 116);
+    c.fillText(site.label, 22, 116, 730);
     c.font = "32px MiSans";
     c.fillStyle = "#878476";
     c.fillText("INTERNAL DATABASE", 25, 174);
@@ -719,7 +721,7 @@ export class ArchiveScene {
         hit
           ? hit.instanceId !== undefined
             ? fileAtCell(this.cells[hit.instanceId])
-            : fileAtSlot(this.selectedSlot)
+            : this.selectedIndex
           : null,
       );
     });
@@ -754,7 +756,7 @@ export class ArchiveScene {
         this.onSelect?.(
           hit.instanceId !== undefined
             ? fileAtCell(this.cells[hit.instanceId])
-            : fileAtSlot(this.selectedSlot),
+            : this.selectedIndex,
           hit.instanceId !== undefined
             ? { ...this.cells[hit.instanceId] }
             : { ...this.selectedCell },

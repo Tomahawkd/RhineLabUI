@@ -1,4 +1,6 @@
-import content from "../content/archives.json" with { type: "json" };
+import content from '../.generated/site-records.json';
+
+export const site = content.site;
 
 export interface ArchiveRecord {
   id: string;
@@ -12,17 +14,16 @@ export interface ArchiveRecord {
   abstract: string;
   findings: string[];
   source: string;
+  tags?: string[];
+  reference?: string;
 }
 
 export const records: ArchiveRecord[] = content.records;
-export const categories = ["全部档案", ...content.categories];
-export const archiveColumns = content.columns;
-
+export const archiveColumns: string[] = content.categories;
+export const categories = ['全部档案', ...archiveColumns];
 export function columnFiles(lane: number) {
-  return records
-    .map((record, index) => ({ record, index }))
-    .filter(({ record }) => record.category === archiveColumns[lane])
-    .map(({ index }) => index);
+  const category = archiveColumns[((lane % archiveColumns.length) + archiveColumns.length) % archiveColumns.length];
+  return records.flatMap((record, index) => record.category === category ? [index] : []);
 }
 export function fileLocation(index: number) {
   const lane = archiveColumns.indexOf(records[index].category);

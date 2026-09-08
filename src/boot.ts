@@ -23,7 +23,7 @@ export class BootSequence {
   private caps: SVGCircleElement[];
   private companyInk: HTMLElement[];
   private poweredHTML: string;
-  constructor(private stage: HTMLElement) {
+  constructor(private stage: HTMLElement, private sessionName = "JOYCE MOORE") {
     [
       ".access-text",
       ".boot-logo",
@@ -108,7 +108,7 @@ export class BootSequence {
     this.el(selector).style.opacity = String(Number(value));
   }
   update(time: number) {
-    const s = bootMotion(time),
+    const s = bootMotion(time, this.sessionName),
       t = s.t;
     this.stage.dataset.bootFrame = String(s.f);
     this.el(".access-text").textContent = s.access;
