@@ -7,17 +7,20 @@ const { chromium, webkit } = await import(process.env.PLAYWRIGHT_MODULE ? pathTo
 const base=process.env.REVIEW_URL || "http://127.0.0.1:5187";
 const output=resolve(".tools/responsive");await mkdir(output,{recursive:true});
 const engine=process.env.REVIEW_ENGINE || "chromium";
-const browser=engine==='webkit'?await webkit.launch({headless:true}):await chromium.launch({channel:'chrome',headless:true,args:['--use-angle=d3d11','--enable-gpu','--ignore-gpu-blocklist']});
+const software = process.env.REVIEW_SOFTWARE === '1';
+const browser=engine==='webkit'?await webkit.launch({headless:true}):await chromium.launch({headless:true, ...(process.env.REVIEW_CHANNEL ? {channel:process.env.REVIEW_CHANNEL} : {}), args:software ? ['--enable-unsafe-swiftshader','--use-angle=swiftshader'] : process.platform === 'win32' ? ['--use-angle=d3d11','--enable-gpu','--ignore-gpu-blocklist'] : []});
 const cases=engine==='webkit' ? [['safari-portrait',390,844,true],['safari-landscape',844,390,true]] :
   [['desktop',1920,1080,false],['laptop',1440,900,false],['wide',2560,1080,false],['ultrawide',3840,1080,false],['tablet',1280,1024,false],['landscape',844,390,true],['portrait',390,844,true],['small',320,568,true],['short-landscape',568,320,true]];
 const report=[];
+const capture=async(page,path)=>{if(process.env.REVIEW_SCREENSHOTS !== '0') await page.screenshot({path});};
 const stats=page=>page.evaluate(()=>window.rhine.stats());
 async function bounds(page,selectors){return page.evaluate(selectors=>Object.fromEntries(selectors.map(s=>{const el=document.querySelector(s),r=el.getBoundingClientRect();return [s,{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}]})),selectors)}
 async function inside(page,selectors,w,h){const rects=await bounds(page,selectors);for(const [s,r] of Object.entries(rects))assert.ok(r.x>=-1&&r.y>=-1&&r.right<=w+1&&r.bottom<=h+1,`${s} outside ${w}x${h}: ${JSON.stringify(r)}`);return rects}
 async function touch(page,points){
-  if(engine==='webkit') {
-    // Real WebKit pointer handlers; real multi-touch requires an iPhone.
-    await page.evaluate(points=>{const el=document.querySelector('#three-scene canvas');el.setPointerCapture=()=>{};for(const [i,[x,y]] of points.entries())el.dispatchEvent(new PointerEvent(i===0?'pointerdown':i===points.length-1?'pointerup':'pointermove',{pointerId:77,pointerType:'touch',isPrimary:true,clientX:x,clientY:y,bubbles:true}));},points);return;
+  if(engine==='webkit' || software) {
+    // Synthetic pointer handlers for WebKit/software runs. Native gesture timing
+    // and hit testing require the hardware-backed Chromium/device run.
+    await page.evaluate(points=>{const el=document.querySelector('#three-scene canvas');const capture=el.setPointerCapture;el.setPointerCapture=()=>{};try{for(const [i,[x,y]] of points.entries())el.dispatchEvent(new PointerEvent(i===0?'pointerdown':i===points.length-1?'pointerup':'pointermove',{pointerId:77,pointerType:'touch',isPrimary:true,clientX:x,clientY:y,bubbles:true}));}finally{el.setPointerCapture=capture}},points);return;
   }
   const session=await page.context().newCDPSession(page);
   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:points[0][0],y:points[0][1],id:1}]});
@@ -26,14 +29,19 @@ async function touch(page,points){
 }
 try{
 for(const [name,width,height,mobile] of cases.filter(([name])=>!process.env.REVIEW_CASES||process.env.REVIEW_CASES.split(',').includes(name))){
- const context=await browser.newContext({viewport:{width,height},hasTouch:mobile,isMobile:mobile,deviceScaleFactor:mobile?2:1});
+ const context=await browser.newContext({viewport:{width,height},hasTouch:mobile,isMobile:mobile,deviceScaleFactor:software?Number(process.env.REVIEW_DPR || .5):mobile?2:1});
+ // Software rendering is for interaction checks only, never performance evidence.
+ if(software) await context.addInitScript(()=>localStorage.setItem('logger-settings-v1',JSON.stringify({sound:false,music:false,reduced:true,rendering:{scale:50,pixelRatio:1,shadows:0,aoSamples:0,depthOfField:0,transmission:.25,anisotropy:1}})));
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(`${base}/?scene=archive`);
  await page.waitForFunction(()=>window.rhine?.stats().ready&&!document.querySelector('#loading'),null,{timeout:60000});
- await page.waitForFunction(()=>window.rhine.stats().extraction>=.395,null,{timeout:60000});await page.waitForTimeout(300);
- const entry={name,viewport:{width,height},errors};report.push(entry);
- entry.archive=await inside(page,['.brand','.system-nav','.read-file','.archive-navigation','.column-navigation','.archive-counter'],width,height);
- await page.screenshot({path:resolve(output,`${name}-archive-final.png`)});
+ await page.waitForFunction(()=>window.rhine.stats().extraction>=.395,null,{timeout:60000}).catch(async error=>{console.error(await stats(page),errors);throw error});await page.waitForTimeout(300);
+ console.log(`${engine} ${name}: archive ready`);
+ const entry={name,viewport:{width,height},software,swipeInput:software||engine==='webkit'?'synthetic':'native',errors};report.push(entry);
+ entry.archive=await inside(page,['.brand','.system-nav','.system-nav > a','.read-file','.archive-navigation','.column-navigation','.archive-counter'],width,height);
+ const brand=entry.archive['.brand'], nav=entry.archive['.system-nav'];
+ assert.ok(brand.right<=nav.x || nav.right<=brand.x || brand.bottom<=nav.y || nav.bottom<=brand.y,'System navigation must not overlap the brand');
+ await capture(page,resolve(output,`${name}-archive-final.png`));
  const before=await stats(page);
  if(mobile){
    const y=Math.round(height*(width>height?.4:.25)),x=Math.round(width*.4);
@@ -43,17 +51,19 @@ for(const [name,width,height,mobile] of cases.filter(([name])=>!process.env.REVI
    await touch(page,[[width*.45,y],[width*.45,y-40],[width*.45,y-75]]);await page.waitForTimeout(300);
    assert.equal((await stats(page)).selectedCell.row,row+1,'Swipe up advances one file');
  }
- // Eight steps traverse the seam without changing the remembered content.
+ // Traverse this category's actual content period, including uneven data.
  const loop=await stats(page);
- for(let i=0;i<8;i++){await page.locator('[data-action="next"]').click();await page.waitForTimeout(65)}
+ const period=await page.locator('#file-ticks button').count();
+ assert.ok(period>0);
+ for(let i=0;i<period;i++){await page.locator('[data-action="next"]').click();await page.waitForTimeout(65)}
  assert.equal((await stats(page)).selected,loop.selected);
- assert.equal((await stats(page)).selectedCell.row,loop.selectedCell.row+8);
+ assert.equal((await stats(page)).selectedCell.row,loop.selectedCell.row+period);
  await page.waitForTimeout(2000);
  await page.locator('.read-file').click();
- await page.waitForFunction(()=>window.rhine.stats().decryption.clarity===1,null,{timeout:60000});await page.waitForTimeout(1400);
+ await page.waitForFunction(()=>{const s=window.rhine.stats();return s.decryption.clarity===1&&s.extraction===4.05&&s.canInspect},null,{timeout:60000});
  entry.detail=await inside(page,['.back-button','.viewer-open','.detail-content'],width,height);
  entry.detailStats=await stats(page);
- await page.screenshot({path:resolve(output,`${name}-detail-final.png`)});
+ await capture(page,resolve(output,`${name}-detail-final.png`));
  assert.equal(entry.detailStats.extraction,4.05);
  assert.ok(entry.detailStats.canInspect);
  // The document can reach actions on short displays; bookmarking preserves scroll.
@@ -66,7 +76,7 @@ for(const [name,width,height,mobile] of cases.filter(([name])=>!process.env.REVI
  await page.waitForTimeout(550);
  await page.locator('[data-viewer="explode"]').click();await page.waitForFunction(()=>JSON.parse(document.querySelector('.model-viewer').dataset.stats).spread>.999);
  await inside(page,['.viewer-back','.viewer-actions','.viewer-reset','.viewer-surface'],width,height);
- await page.screenshot({path:resolve(output,`${name}-viewer-final.png`)});
+ await capture(page,resolve(output,`${name}-viewer-final.png`));
  const viewerBefore=await page.locator('.model-viewer').evaluate(el=>JSON.parse(el.dataset.stats));
  if(mobile&&engine==='chromium') {
    const host=await page.locator('.viewer-canvas').boundingBox();const x=host.x+host.width*.5,y=host.y+host.height*.5;
@@ -94,12 +104,12 @@ for(const [name,width,height,mobile] of cases.filter(([name])=>!process.env.REVI
    await page.locator(`[data-action="${action}"]`).click();await page.waitForTimeout(350);
    await inside(page,['.terminal-modal','[data-action="close-modal"]'],width,height);
    if(action==='search'){
-     await page.locator('#archive-search').fill('X-001');assert.equal(await page.locator('.result-row').count(),1);
+     await page.locator('#archive-search').fill(before.selected);assert.equal(await page.locator('.result-row').count(),1);
      assert.ok(await page.locator('#archive-search').evaluate(el=>parseFloat(getComputedStyle(el).fontSize)>=16));
    }
-   if(action==='settings')await page.screenshot({path:resolve(output,`${name}-settings-final.png`)});
+   if(action==='settings')await capture(page,resolve(output,`${name}-settings-final.png`));
    await page.locator('[data-action="close-modal"]').click();await page.waitForFunction(()=>!document.querySelector('.modal-backdrop'));
  }
- assert.deepEqual(errors,[]);console.log(`${engine} ${name}: passed`);await context.close();
+ assert.deepEqual(errors,[]);entry.passed=true;console.log(`${engine} ${name}: passed`);await context.close();
 }
-}finally{await writeFile(resolve(output,`regression-${engine}.json`),JSON.stringify(report,null,2));await browser.close()}
+}catch(error){report.push({failure:String(error)});throw error;}finally{await writeFile(resolve(output,`regression-${engine}.json`),JSON.stringify(report,null,2));await browser.close()}

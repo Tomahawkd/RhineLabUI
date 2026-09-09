@@ -12,6 +12,6 @@ Reference shared visual requirements in [DESIGN.md](../DESIGN.md) and detailed e
 
 | ID | Feature | Status |
 | --- | --- | --- |
-| 0001 | [Mobile support](0001-mobile-support.md) | Draft — planning only |
+| 0001 | [Mobile support](0001-mobile-support.md) | In progress — upstream foundation integrated |
 
 Start a new spec from [the template](_template.md), removing its placeholder text and adding an initial change-log entry.

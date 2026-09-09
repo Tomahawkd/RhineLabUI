@@ -2,10 +2,6 @@
 
 **基于莱茵生命三维终端的个人站点模板。**
 
-**[在线体验 → rhine.lubeiluchen.cc](https://rhine.lubeiluchen.cc/)**
-
-iPhone 可用 Safari 打开在线版，通过“分享 → 添加到主屏幕”安装；从主屏幕图标进入可使用独立窗口。首次联网后，设置中显示“离线资源已就绪”即可离线浏览档案和模型。支持桌面不同比例、手机横竖屏和触摸操作。[安装与更新说明](docs/PWA.md)
-
 ![莱茵生命终端：由透明档案盒构成的三维阵列](docs/media/archive.jpg)
 
 本仓库是 [LBEILC/RhineLabUI](https://github.com/LBEILC/RhineLabUI) 的独立 fork，定位为个人站点模板。沿用上游对《明日方舟》特别映像「莱茵生命：访问」终端界面的非官方复刻，加入独立 Markdown 数据仓库、阅读目录与站点配置。默认示例从白底开场进入五列循环档案阵列；实际分类与档案数量由你的内容决定。
@@ -18,7 +14,7 @@ iPhone 可用 Safari 打开在线版，通过“分享 → 添加到主屏幕”
 
 [快速运行](#快速运行) · [界面与动效](#界面与动效) · [操作说明](#操作说明) · [用演示文档构建站点](#用演示文档构建站点) · [源码与 Blender 工程下载](https://pan.quark.cn/s/762d9ee9dfc3) · [参考原 PV](https://www.bilibili.com/video/BV1rr4y1b7sz/)
 
-新功能先在 [`specs/`](specs/README.md) 编写规格，包含背景、落地计划、测试计划与持续更新的变更日志；后续修复与扩展同步维护原规格。首份为 [移动端支持规划](specs/0001-mobile-support.md)，当前仅完成规划。
+新功能先在 [`specs/`](specs/README.md) 编写规格，包含背景、落地计划、测试计划与持续更新的变更日志；后续修复与扩展同步维护原规格。首份为 [移动端支持规划](specs/0001-mobile-support.md)，已接入上游移动端基础，完整验收与剩余工作见规格。
 
 ## 新版效果
 
@@ -109,7 +105,7 @@ GIF 不含声音。可单独[试听原创配乐「观测室」](public/audio/obs
 
 ## 快速运行
 
-需要 **Node.js 22.12 或更高版本**（可使用 Node.js 24），以及支持 WebGL 2 的现代桌面浏览器。首次安装依赖需要网络；应用不需要 API Key，也不需要启动后端服务。
+需要 **Node.js 22.12 或更高版本**（可使用 Node.js 24），以及支持 WebGL 2 的现代浏览器（桌面或移动端）。首次安装依赖需要网络；应用不需要 API Key，也不需要启动后端服务。
 
 ### 获取项目
 
@@ -157,7 +153,7 @@ npm run preview
 
 [`examples/minimal/`](examples/minimal/) 保留为包含三篇文档的入门模板；可用 `RHINELAB_CONTENT_DIR=examples/minimal npm run build` 构建。下文从这个精简模板创建新站点。
 
-打开预览地址查看三维档案；`/?view=list` 为阅读目录，适合移动端与不支持 WebGL 的环境。构建输出在 `dist/`，中间文件在本仓库的 `.generated/`，不会改写输入文档。
+打开预览地址查看三维档案；`/?view=list` 为阅读目录，可手动选择的轻量阅读入口，也用于不支持 WebGL 的环境。构建输出在 `dist/`，中间文件在本仓库的 `.generated/`，不会改写输入文档。
 
 ### 从演示文档建立独立数据目录
 

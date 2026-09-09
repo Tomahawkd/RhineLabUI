@@ -1,7 +1,6 @@
 const catalogue = document.querySelector<HTMLElement>('#catalogue')!;
 const viewport = document.querySelector<HTMLElement>('#viewport')!;
 const params = new URLSearchParams(location.search);
-const desktop = matchMedia('(min-width: 1000px) and (min-height: 620px)');
 
 function showCatalogue() {
   viewport.hidden = true;
@@ -10,7 +9,7 @@ function showCatalogue() {
 }
 
 async function start() {
-  if (params.get('view') === 'list' || !desktop.matches) return;
+  if (params.get('view') === 'list') return;
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('webgl2');
   if (!context) return;
@@ -26,7 +25,4 @@ async function start() {
   }
 }
 
-desktop.addEventListener('change', () => {
-  if (!desktop.matches && !viewport.hidden) location.replace('/?view=list');
-});
 void start();

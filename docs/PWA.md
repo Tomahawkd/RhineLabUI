@@ -1,5 +1,7 @@
 # 主屏幕安装与离线使用
 
+> 上游 `5abab02` 的实现与验证记录。本 fork 未启用 PWA；上游域名、资源数量、设备反馈和通过结果不代表本 fork。当前集成状态见 [移动端规格](../specs/0001-mobile-support.md) 与 [fork 验证](../verification/MOBILE-SUPPORT.md)。
+
 正式地址：[rhine.lubeiluchen.cc](https://rhine.lubeiluchen.cc/)。
 
 ## iPhone / iPad

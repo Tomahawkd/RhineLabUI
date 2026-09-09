@@ -7,11 +7,12 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "check:viewport": "node --experimental-strip-types scripts/check-viewport.mjs",
+    "check:responsive": "node scripts/check-responsive.mjs",
     "review:mobile": "node scripts/serve-mobile-review.mjs",
     "build": "node scripts/content.mjs && tsc && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "format": "prettier --write src scripts index.html package.json tsconfig.json",
-    "check": "node --test scripts/*.test.mjs && node scripts/check-motion.mjs && node scripts/check-appearance.mjs && node scripts/check-assembly.mjs"
+    "check": "node --test scripts/*.test.mjs && node scripts/check-motion.mjs && node scripts/check-appearance.mjs && node scripts/check-assembly.mjs && node scripts/check-viewport.mjs"
   },
   "dependencies": {
     "@kitlangton/rolling-number": "0.4.1",

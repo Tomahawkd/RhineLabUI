@@ -140,8 +140,7 @@
 - 触摸在阵列区域左右切列、上下切档；详情获得净空后可单指检查，360° 查看器单指旋转、双指缩放和平移。正文滚动与场景手势隔离，旋转屏幕保留当前选档、视角与拆解状态。
 - 画质仍采用已有用户设置与原始默认值；不得以手机类型直接切到删减光影的性能档。实机校准必须区分真实 iPhone 数据、桌面 WebKit 兼容性检查与 Chromium 视口模拟。实现见 `src/viewport-layout.ts`、`src/responsive.css`，验证见 `verification/RESPONSIVE.md`。
 
-## PWA 与线上入口
+## 上游 PWA 的 fork 边界
 
-- 用户要求增加 PWA，以便 iPhone 从主屏幕进入独立窗口；沿用现有 Vercel 项目与正式域名 https://rhine.lubeiluchen.cc/，README 保留在线入口。
-- 正式构建缓存完整资源版本，更新下载失败时保留旧版。新版本准备好后由用户在设置中更新并重启，不中断当前浏览；保留收藏和偏好。
-- 开发模式不注册 Service Worker。图标复用项目共享品牌路径；主屏幕安装、离线与更新说明见 `docs/PWA.md`，验证见 `verification/RESPONSIVE.md`。
+- 上游 `5abab02` 的 PWA 源文件与工具保留供比较；本 fork 暂不注册 Service Worker、不接入离线构建和安装界面。移动端规格不包含 PWA。
+- 上游域名、Vercel 部署与 iPhone 反馈仅作为上游历史，不作为本 fork 的线上入口、部署授权或实机验证。PWA 若启用，先另写规格，覆盖独立数据仓库生成的正文、目录、样式及资源缓存与更新。

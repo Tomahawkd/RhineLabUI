@@ -22,7 +22,7 @@ test('default UI language and identity are preserved; custom identity is escaped
   const source = await readFile(join(engineRoot, 'src/main.ts'), 'utf8');
   const stageTemplate = source.match(/\$\("#stage"\)\.innerHTML = (`[\s\S]*?`);/)[1];
   const settingsTemplate = source.match(/function settingsMarkup\(\) \{\s+return (`[\s\S]*?`);/)[1];
-  const context = site => ({ site, escapeHtml, records: [{ title: '莱茵生命', category: '机构档案' }], archiveColumns: ['机构档案'], logo: '', brandHeading, audioSettingsMarkup, qualityMarkup: () => '', prefs: { soundVolume: .55, musicVolume: .5 } });
+  const context = site => ({ site, escapeHtml, records: [{ title: '莱茵生命', category: '机构档案' }], archiveColumns: ['机构档案'], logo: '', brandHeading, audioSettingsMarkup, qualityMarkup: () => '', assetUrl: path => `/${path}`, document: { fullscreenEnabled: false }, prefs: { soundVolume: .55, musicVolume: .5 } });
   const stage = runInNewContext(stageTemplate, context(defaults));
   assert.ok(stage.includes('</i> SESSION AUTHORIZED</span><span>JOYCE MOORE <i>／</i>'));
   for (const text of ['aria-label="ANALYSIS"', '<b>OS</b>', 'INTERNAL DATABASE', 'CONNECTING TO INTERNAL DATABASE', 'aria-label="系统导航"', 'COLUMN <span']) assert.ok(stage.includes(text), text);

@@ -1,6 +1,6 @@
 # 0001 — Mobile support
 
-- Status: Draft — planning only; mobile interactive support is not implemented.
+- Status: In progress — upstream mobile foundation integrated; fork acceptance remains incomplete.
 - Created: 2026-09-09
 - Last updated: 2026-09-09
 - Constraints: [AGENTS.md](../AGENTS.md), [DESIGN.md](../DESIGN.md)
@@ -8,9 +8,9 @@
 
 ## Background
 
-The interactive archive currently targets a desktop display. Phones can reach the generated reading catalogue and articles, but cannot use the full archive experience. Mobile support should make browsing, reading, search, saved archives, settings, and model inspection usable with touch in portrait and landscape.
+At the initial planning baseline, the interactive archive targeted a desktop display. Phones can reach the generated reading catalogue and articles, but cannot use the full archive experience. Mobile support should make browsing, reading, search, saved archives, settings, and model inspection usable with touch in portrait and landscape.
 
-### Current implementation
+### Initial implementation (before upstream integration)
 
 - `src/entry.ts` starts the interactive UI only when the viewport is at least 1000 × 620 CSS pixels and WebGL 2 is available. Smaller screens retain the catalogue. Crossing below that threshold after startup redirects to `/?view=list`.
 - `src/main.ts` scales a fixed 1920 × 1080 stage to fit the window. `src/style.css` places navigation, archive details, dialogs, and viewer controls within that stage. Simply removing the entry gate would shrink text and controls excessively on phones.
@@ -70,7 +70,7 @@ Limit gesture capture and restrictive `touch-action` rules to the interactive ca
 
 ### Implementation sequence
 
-All stages below are pending. Each implementation commit must update this spec and its change log with behavior changes and actual validation results.
+Upstream `5abab02` supplies much of stages 1–4 and parts of stage 5. The sequence below remains the acceptance roadmap; the comparison section records current coverage and remaining work. Each implementation commit must update this spec and its change log with behavior changes and actual validation results.
 
 1. **Establish viewport and input foundations.** Capture desktop reference states and add a shared viewport/layout description. Separate the fixed cinematic coordinate system from responsive UI and scene hosts. Extract shared navigation dispatch only as needed. Identify fixed projection coordinates in `src/scene.ts`, inspection overlays, document decryption, and render sizing. Keep small-screen entry on the catalogue until the complete compact path is usable.
 2. **Implement archive and detail layout.** Add compact styles, safe-area handling, readable navigation, bounded scene/preview regions, and document scrolling in `src/main.ts` and `src/style.css`. Adapt camera aspect, projection anchors, inspection overlays, and render dimensions to their actual host rectangles. Preserve desktop trajectories and model transforms. Make boot/skip/replay usable in the same layout without changing the reference timecodes. Depends on stage 1.
@@ -82,6 +82,24 @@ All stages below are pending. Each implementation commit must update this spec a
 Likely implementation files are `src/entry.ts`, `src/main.ts`, `src/style.css`, `src/scene.ts`, `src/inspection-overlay.ts`, `src/document-decryption.ts`, `src/model-viewer.ts`, `src/viewer-camera.ts`, `src/quality-renderer.ts`, and settings styles. Inspect generated reader styles before editing their source. New viewport/gesture modules are appropriate if they isolate testable behavior. No model asset regeneration is planned.
 
 If rollout exposes a critical interaction failure, restore the previous verified UI commit (and the consumer's pinned SHA if deployed). The reading catalogue remains available throughout. Document the regression and correction in this spec; do not silently mark the feature verified.
+
+### Upstream integration comparison — 2026-09-09
+
+Source: upstream `5abab02` (`feat: adapt archive UI to mobile and add offline PWA`), rebased over fork baseline `42572a4`. This section supersedes the initial implementation description and records deviations from the proposed design without treating them as fully accepted.
+
+| Plan area | Upstream implementation / fork integration | Remaining work against this spec |
+| --- | --- | --- |
+| Viewport foundations | Shared `viewport-layout.ts`, CSS-pixel compact controls, camera-only framing, actual canvas buffer scale. Portrait means aspect < 1.05; compact means portrait, width < 1100, or coarse pointer with height < 600. Desktop uses a 1080-unit logical height with variable width. | These replace the proposed 1000 × 620 layout threshold. Validate more tablet, hybrid-input and extreme short-window combinations. 1920 × 1080 remains the reference. |
+| Mobile entry | Remove this fork's old size gate and resize redirect; preserve explicit `?view=list`, generated catalogue, and initialization fallback. | Complete acceptance is not a prerequisite for importing this usable upstream foundation under the user's rebase request. Runtime WebGL context-loss recovery remains unimplemented. |
+| Archive and detail | Portrait preview above independently scrolling detail; compact landscape split; responsive navigation and safe areas. Preserve configurable identity, full-entry links, source-URL bookmarks and generated exports when resolving conflicts. | Audit fork-specific links, long content and many/uneven categories. Body text is 15px versus the planned 16px. Some controls have only 44px height, not 44 × 44 hit areas. |
+| Swipes | One step on release; 36px minimum, 1.3:1 final-axis ratio, at most 1400ms; pointer capture, multi-pointer cancellation, client-coordinate detail drag. | These replace the draft 24px/1.5:1 proposal as imported behavior. No early axis lock or explicit resize/modal-open gesture cancellation. Verify browser edge gestures and hybrid input. |
+| Boot, dialogs and settings | Reference boot stays 16:9 with a separate touch-size skip button; Visual Viewport sizes dialogs; focus explicitly follows tapped openers; fullscreen control is capability-gated. | Physical keyboard/browser-bar behavior, long identities, reading zoom and full accessibility review remain required. |
+| Viewer | Explicit one-finger orbit and two-finger zoom/pan, compact controls, portrait canvas/framing, preserved requested pose on resize. | Visible directional pan and zoom alternatives are still missing. Real-device gesture/reset/close journeys remain required. |
+| Rendering and resilience | Preserve quality defaults, stop updates while hidden, avoid rendering beneath the opaque 2D boot. | No measured physical Android/iPhone performance report for this fork, context-loss recovery, or complete failure/resume matrix. |
+| Tests | Import viewport math/gesture checks and browser regression script; adapt the latter to variable category lengths and the available browser platform. | Upstream's reported iPhone trial and Windows WebKit screenshots are upstream evidence, not verification of this fork. Expanded CI, accessibility and physical-device checks remain open. |
+| Offline PWA | Upstream additionally contains install/update UI, manifest, icons and a service-worker cache. Keep imported source/tooling as reference, but do not register the worker, advertise installation, or invoke its build step in this fork. | PWA stays outside this spec's scope. Its cache omits `reader.css`, `reader.js`, generated article/directory pages, KaTeX and content assets; enabling it needs a separate content-aware spec and validation. Upstream domain/deployment claims do not describe this fork. |
+
+Integration work is limited to making the imported mobile implementation usable with this fork's content architecture and correcting integration regressions. The remaining plan gaps above are recorded for follow-up, not silently implemented as part of a rebase. The new fork verification report will record checks actually run.
 
 ### Acceptance criteria
 
@@ -99,7 +117,7 @@ If rollout exposes a critical interaction failure, restore the previous verified
 
 - Run `npm run check` and `npm run build`; also build with `RHINELAB_CONTENT_DIR=examples/minimal` and, when available, the external content repository. Confirm generated output stays within UI `.generated/` and `dist/` and content remains unchanged.
 - Add focused unit tests for viewport mode boundaries and gesture decisions: tap versus swipe, axis lock, threshold edges, cancellation, second pointers, and no duplicate dispatch. Exercise navigation with uneven categories, one archive, wraparound, and selection memory using the existing shared navigation logic.
-- Add browser interaction coverage for mobile startup, explicit list mode, initialization failure, modal focus/isolation, touch actions, and resize preservation. There is no browser test command in `package.json` today; introduce a reproducible runner and CI command during implementation, documenting setup and coverage in the verification report. Test observable outcomes rather than checking for CSS strings.
+- Add browser interaction coverage for mobile startup, explicit list mode, initialization failure, modal focus/isolation, touch actions, and resize preservation. Upstream adds `scripts/check-responsive.mjs`; adapt it for this fork's entry and variable content counts and provide reproducible invocation. Broader CI and device coverage remains pending. Test observable outcomes rather than checking for CSS strings.
 - Check actual element bounds and document overflow at representative viewports, long/custom identity text, long titles, large content sets, and wide Markdown content. Confirm touch hit areas after all transforms.
 - Capture desktop and compact archive, detail, dialogs and viewer screenshots with deterministic scene/reduced-motion settings where appropriate. Also exercise live transitions; frozen screenshots do not validate motion.
 
@@ -128,9 +146,9 @@ Record exact device, OS, browser version, viewport, pixel ratio, quality preset 
 
 ### Validation status
 
-Planning is based on source inspection. No mobile implementation, browser/device acceptance tests, screenshot comparisons, or performance measurements have been completed for this feature. Store implementation evidence in `verification/MOBILE-SUPPORT.md` when those checks run, and link each material result from the change log.
+The upstream mobile foundation is integrated. Source comparison and fork validation are recorded in [MOBILE-SUPPORT.md](../verification/MOBILE-SUPPORT.md). Physical-device acceptance, screenshot comparisons and performance measurements remain incomplete; upstream reports are not verification of this fork.
 
-For this documentation change, `npm run check`, `npm run build`, spec section/link checks, and `git diff --check` passed. The build reports its large JavaScript chunk warning. These checks validate the existing baseline and documentation, not mobile support.
+For the initial documentation change, `npm run check`, `npm run build`, spec section/link checks, and `git diff --check` passed. The build reports its large JavaScript chunk warning. These checks validate the existing baseline and documentation, not mobile support.
 
 ## Change log
 
@@ -138,3 +156,7 @@ For this documentation change, `npm run check`, `npm run build`, spec section/li
 | --- | --- | --- | --- |
 | 2026-09-09 | Created the first feature spec: responsive interactive archive, touch input, reading/dialog/viewer adaptation, fallback, staged landing and regression coverage. | The interactive UI is desktop-gated; mobile currently receives the reading catalogue. | Inspected entry, fixed-stage layout, pointer handling, viewer controls, render sizing, build/test scripts and repository constraints. Planning only; implementation and all mobile acceptance checks pending. |
 | 2026-09-09 | Recorded planning-delivery validation and linked the spec-first rule, index and reusable template. | Establish a maintained specification before implementation. | Existing `npm run check` and `npm run build` passed; spec sections/links and whitespace checked. Build reports a large-chunk warning. Mobile acceptance remains untested. |
+| 2026-09-09 | Rebase onto upstream `5abab02`; record mobile coverage, changed thresholds and remaining acceptance gaps. Plan entry/content/test compatibility fixes and defer PWA activation. | Reuse upstream mobile work while preserving the independent data architecture and original mobile scope. | Rebase conflicts resolved; initial checks found the settings test harness needs the new fullscreen/asset context. Browser and final checks pending. |
+| 2026-09-09 | Reflow the fork-only READING INDEX link beneath compact system actions. | Browser bounds showed the extra link made navigation overlap the brand at 390 × 844; upstream has no such link. | Add overlap and reading-link bounds checks to the mobile regression; final rerun pending. |
+| 2026-09-09 | Add portable browser-runner options, variable category-period checks, and state-based extraction waits; distinguish software/synthetic checks from native input validation. | Upstream tests assumed eight items, Windows Chrome, and fast rendering. | Core/quality checks and all three content builds passed; desktop workflow and catalogue fallback checks passed. Native mobile swipe and full-device acceptance remain unverified; see the fork report for final mobile results. |
+| 2026-09-09 | Complete fork integration validation and retain In progress status for remaining acceptance work. | Import the usable upstream foundation without claiming the full original plan is complete. | Core and quality checks, default/minimal/external builds, four reading fallback cases, desktop workflow and three mobile viewport workflows passed. Mobile archive swipes were synthetic under test-only software rendering/reduced motion; native timing, screenshots and real-device performance remain unverified. Evidence: [fork report](../verification/MOBILE-SUPPORT.md). |

@@ -1,5 +1,7 @@
 # 屏幕比例、触摸与 PWA 验证
 
+> 上游 `5abab02` 的实现与验证记录。本 fork 未启用 PWA；上游域名、资源数量、设备反馈和通过结果不代表本 fork。当前集成状态见 [移动端规格](../specs/0001-mobile-support.md) 与 [fork 验证](../verification/MOBILE-SUPPORT.md)。
+
 日期：2026-09-09。保持原生 TypeScript / Three.js / DOM 实现；原片对照继续使用 1920×1080 舞台。
 
 ## 实现边界
