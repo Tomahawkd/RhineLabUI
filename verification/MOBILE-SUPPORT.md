@@ -11,7 +11,7 @@ This report covers the integration of upstream mobile support with the Markdown-
 - Enabled responsive startup by removing the old small-screen gate and resize redirect. Explicit `/?view=list`, missing-WebGL and initialization fallback remain available.
 - Kept the upstream responsive layout, camera-only reframing, swipe recognizer, viewer gestures, safe areas, modal sizing, and quality defaults. The fork-only READING INDEX link now sits below compact system actions: measured original bounds at 390 × 844 overlapped the brand (brand x=20–133.4; navigation x=59.2–370).
 - Imported upstream viewport checks into `npm run check`. Added `npm run check:responsive` and adapted its browser launch for Linux/optional channels, category-period checks for variable data, and system-nav overlap checks.
-- PWA source and tools remain in history and the tree, but production does not import the PWA runtime, advertise the manifest/install UI, or generate/register a service worker. Upstream cache assumptions do not cover generated reading content. No data-site deployment pin is changed by this rebase.
+- PWA source and tools remain in history and the tree, but production does not import the PWA runtime, advertise the manifest/install UI, or generate/register a service worker. Upstream cache assumptions do not cover generated reading content. The rebase itself did not change the data-site deployment pin; the subsequent user-authorized rollout is recorded below.
 
 ## Validation
 
@@ -45,3 +45,9 @@ The upstream base provides much of the planned mobile functionality, but spec 00
 - Physical iPhone/Safari and Android checks, software keyboard/browser bars, screen-reader/zoom review, long/custom content, and measured performance remain unverified for this fork.
 - Runtime context-loss recovery and the full asset-failure/background-resume matrix remain open.
 - No new cross-device pixel comparison or physical-device frame-time report has been produced here.
+
+## Personal blog rollout
+
+The user authorized publishing the mobile version for hands-on review on 2026-09-09. Data commit `37eb95408c5f1ada451b8fae7a115e8b72726466` changes only `.github/workflows/deploy.yml`, pinning the UI to `fd0c3eabd808de15fba51501f1fa2ff1d7749894` instead of `0e761e2f1a783da21051d61aa1f43e5ce33f1221`.
+
+The external-content build passed again (32 records, 5 categories, 21 pages). [GitHub Pages deployment](https://github.com/Tomahawkd/tomahawkd.github.io/actions/runs/34348941817) completed its build and deploy jobs successfully. The public [blog](https://github.tomahawkd.online/) references `/assets/index-B0QPJOzT.js`; that entry bundle, `/assets/main-BTZWogxw.js` and `/assets/main-CJS4ZzMb.css` match the local reviewed build byte for byte. The `/blogs/` reading index also returns HTTP 200. The published entry no longer contains the desktop-only startup gate. User/device acceptance remains pending.
